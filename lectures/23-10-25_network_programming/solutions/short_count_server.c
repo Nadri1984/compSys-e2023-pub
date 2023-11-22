@@ -11,27 +11,14 @@
 
 #define	MAXLINE	 8192
 
-void echo(int connfd)
-{
-    char buf[MAXLINE];
-    int valread;
-
-    // Keep looping until we encounter an EOF char, e.g. the connection was 
-    // closed
-    while((valread = read(connfd, buf, MAXLINE)) != 0) {
-        printf("Recieved %d bytes: %s\n", valread, buf);
-        write(connfd, buf, valread);
-    }
-}
-
 int main(int argc, char **argv)
 {
-    int listenfd, connfd;
+    int listenfd, connfd, valread;
     int opt = 1;
     struct sockaddr_in listen_address;
     int lis_addr_len = sizeof(listen_address);
     struct sockaddr_storage clientaddr;
-    char *port;
+    char *port, buf[MAXLINE];
     port = argv[1];
 
     if (argc != 2) {
@@ -45,13 +32,13 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    //// Setup socket address and flags
-    //if (setsockopt(listenfd, SOL_SOCKET,
-    //               SO_REUSEADDR | SO_REUSEPORT, &opt,
-    //               sizeof(opt))) {
-    //    perror("setsockopt");
-    //    exit(EXIT_FAILURE);
-    //}
+    // Setup socket address and flags
+    if (setsockopt(listenfd, SOL_SOCKET,
+                   SO_REUSEADDR | SO_REUSEPORT, &opt,
+                   sizeof(opt))) {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }
     listen_address.sin_family = AF_INET;
     listen_address.sin_addr.s_addr = INADDR_ANY;
     listen_address.sin_port = htons(atoi(port));
@@ -74,7 +61,21 @@ int main(int argc, char **argv)
             perror("accept");
             exit(EXIT_FAILURE);
         }
-        echo(connfd);
+
+        // Keep looping until we encounter an EOF char, e.g. the connection was 
+        // closed
+        int expected_read = 5;
+        while((valread = read(connfd, buf, expected_read)) != 0) {
+            printf("Recieved %d bytes: ", valread);
+            // Need to print char by char as otherwise that buffer is misleading
+            for (int i=0; i<valread; i++) {
+                printf("%c", buf[i]);
+            }
+            printf("\n");
+            if (valread != expected_read) {
+                printf("A short count has occured!\n");
+            }
+        }
 
         // close the connected socket
         close(connfd);
