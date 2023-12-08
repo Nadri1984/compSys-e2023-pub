@@ -4,6 +4,7 @@
 #include "memory.h"
 #include "assembly.h"
 #include <stdio.h>
+#include <stdint.h>
 
 // Simuler RISC-V program i givet lager og fra given start adresse
 long int simulate(struct memory *mem, struct assembly *as, int start_addr, FILE *log_file);
